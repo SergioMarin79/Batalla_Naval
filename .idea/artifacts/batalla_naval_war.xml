@@ -1,0 +1,14 @@
+<component name="ArtifactManager">
+  <artifact type="war" name="batalla_naval:war">
+    <output-path>$PROJECT_DIR$/target</output-path>
+    <properties id="maven-jee-properties">
+      <options>
+        <module>batalla_naval</module>
+        <packaging>war</packaging>
+      </options>
+    </properties>
+    <root id="archive" name="batalla_naval-1.0-SNAPSHOT.war">
+      <element id="artifact" artifact-name="batalla_naval:war exploded" />
+    </root>
+  </artifact>
+</component>
