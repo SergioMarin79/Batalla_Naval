@@ -17,5 +17,10 @@ public interface  BoardRepository  extends CrudRepository<Board,Integer> {
     @Query("SELECT board From Board board WHERE board.player=?1 and board.id_game=?2 and board.previousElement is null")
     List<Board> getHeadShip(UserLogin player, Game idGame);
 
+    @Query("SELECT board From Board board WHERE board.player=?1 and board.id_game=?2")
+    List<Board> getAllShips(UserLogin player, Game idGame);
+
+
+
 
 }

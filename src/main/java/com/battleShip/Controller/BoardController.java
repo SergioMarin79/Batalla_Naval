@@ -43,5 +43,11 @@ public class BoardController {
         return ResponseEntity.ok().body(boardService.findWinner(idGame,id_player));
     }
 
+    @GetMapping("shipList/{id_game}/{id_player}")
+    public @ResponseBody
+    ResponseEntity<Object> getAllShips(@PathVariable("id_game") int idGame, @PathVariable("id_player") int idPlayer ) {
+        return ResponseEntity.ok(boardService.getAllShips(idGame, idPlayer));
+
+    }
 
 }

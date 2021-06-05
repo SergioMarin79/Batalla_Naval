@@ -1,11 +1,13 @@
 package com.battleShip.Service;
 import com.battleShip.Model.Entities.*;
 import com.battleShip.Repository.*;
+import com.battleShip.domain.ShipPosition;
 import com.battleShip.domain.ShootShip;
 import com.battleShip.domain.LocationShip;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
@@ -34,20 +36,20 @@ public class BoardService {
         UserLogin player = userRepository.getUserById(locationShip.getIdPlayer());
 
 
-        if(locationShip.isHorizontal()){
+        if (locationShip.isHorizontal()) {
             for (int i = 0; i < ship.getNumberBox(); i++) {
-                Board validate = boardRepository.getBoardByShoot(game,player,locationShip.getX() + i,locationShip.getY());
-                if(validate != null){
-                    return "The box in " + validate.getX_coordinate() + " and "+ validate.getY_coordinate() + " are full";
+                Board validate = boardRepository.getBoardByShoot(game, player, locationShip.getX() + i, locationShip.getY());
+                if (validate != null) {
+                    return "The box in " + validate.getX_coordinate() + " and " + validate.getY_coordinate() + " are full";
                 }
             }
 
 
-        }else{
+        } else {
             for (int i = 0; i < ship.getNumberBox(); i++) {
-                Board validate = boardRepository.getBoardByShoot(game,player,locationShip.getX() ,locationShip.getY()+ i);
-                if(validate != null){
-                    return "The box in " + validate.getX_coordinate() + " and "+ validate.getY_coordinate() + " are full";
+                Board validate = boardRepository.getBoardByShoot(game, player, locationShip.getX(), locationShip.getY() + i);
+                if (validate != null) {
+                    return "The box in " + validate.getX_coordinate() + " and " + validate.getY_coordinate() + " are full";
                 }
             }
         }
@@ -202,4 +204,64 @@ public class BoardService {
         }
         return "The player " + player.getId() + " is the winner in the game " + game.getId();
     }
+
+    public String getAllShips(int idGame, int idPlayer) {
+        Game game = gameRepository.getById(idGame);
+        UserLogin player = userRepository.getUserById(idPlayer);
+        List<Board> boards = boardRepository.getAllShips(player, game);
+        List<ShipPosition> shipPositionList = new ArrayList<>();
+        System.out.println("Number of ship position " + boards.size());
+        for(int i = 0; i < boards.size(); i++) {
+            Board board = boards.get(i);
+            if(board.getPreviousElement() == null) {
+                ShipPosition shipPositionHead = new ShipPosition();
+                shipPositionHead.setCorX(board.getX_coordinate());
+                shipPositionHead.setCorY(board.getY_coordinate());
+                shipPositionHead.setPreviousElement(null);
+                ShipPosition shipPositionPrevious = shipPositionHead;
+                do {
+                    ShipPosition shipPositionNextElement = new ShipPosition();
+                    for(int j = 0; j < boards.size(); j++) {
+                        Board board2 = boards.get(j);
+                        System.out.println("First position  " + boards.get(1).getId() + "ID HEAD " + board.getNextElement().intValue() + " id actual " + board2.getId());
+                        if(board2.getId() == board.getNextElement()) {
+                            System.out.println("I found the next element");
+                            shipPositionNextElement.setCorY(board2.getY_coordinate());
+                            shipPositionNextElement.setCorX(board2.getX_coordinate());
+                            shipPositionNextElement.setPreviousElement(shipPositionPrevious);
+                            shipPositionNextElement.setNextElement(null);
+                            shipPositionPrevious.setNextElement(shipPositionNextElement);
+                            board = board2;
+                            break;
+                        }
+                    }
+                    shipPositionPrevious = shipPositionNextElement;
+                } while(board.getNextElement() != null);
+                shipPositionList.add(shipPositionHead);
+            }
+            System.out.println("i " + i + " size " + boards.size());
+        }
+
+        String coordenadas = "";
+        for (int i = 0; i < shipPositionList.size(); i++){
+            ShipPosition shipLocationHead = shipPositionList.get(i);
+            ShipPosition shipPositionNextElement = shipLocationHead;
+            do {
+                if(shipPositionNextElement.isHead()) {
+                    coordenadas = coordenadas + " Its is a head ";
+                    coordenadas =  coordenadas + " X: " + shipPositionNextElement.getCorX() + " Y: " + shipPositionNextElement.getCorY();
+                }
+
+                shipPositionNextElement = shipPositionNextElement.getNextElement();
+                coordenadas =  coordenadas + " X: " + shipPositionNextElement.getCorX() + " Y: " + shipPositionNextElement.getCorY();
+                if(shipPositionNextElement.isTail()) {
+                    coordenadas = coordenadas + " its is a tail ";
+                }
+            } while(!shipPositionNextElement.isTail());
+        }
+        return coordenadas;
+    }
+
+
 }
+
