@@ -4,8 +4,7 @@ public class ShipPosition {
 
     private int corX;
     private int corY;
-    private ShipPosition nextElement;
-    private ShipPosition previousElement;
+    private Boolean isDamage;
 
     public int getCorX() {
         return corX;
@@ -23,20 +22,12 @@ public class ShipPosition {
         this.corY = corY;
     }
 
-    public ShipPosition getNextElement() {
-        return nextElement;
+    public Boolean getDamage() {
+        return isDamage;
     }
 
-    public void setNextElement(ShipPosition nextElement) {
-        this.nextElement = nextElement;
-    }
-
-    public ShipPosition getPreviousElement() {
-        return previousElement;
-    }
-
-    public void setPreviousElement(ShipPosition previousElement) {
-        this.previousElement = previousElement;
+    public void setDamage(Boolean damage) {
+        isDamage = damage;
     }
 
     @Override
@@ -44,30 +35,6 @@ public class ShipPosition {
         return "ShipPosition{" +
                 "corX=" + corX +
                 ", corY=" + corY +
-                ", nextElement=" + nextElement +
-                ", previousElement=" + previousElement +
                 '}';
-    }
-
-    public boolean isHead () {
-        boolean head;
-        if(previousElement == null){
-            head = true;
-        }else{
-            head = false;
-        }
-
-        return head;
-    }
-
-    public  boolean isTail(){
-        boolean tail;
-        if(nextElement == null){
-            tail = true;
-        }else{
-            tail = false;
-        }
-
-        return tail;
     }
 }

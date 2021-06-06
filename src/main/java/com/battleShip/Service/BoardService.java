@@ -1,6 +1,7 @@
 package com.battleShip.Service;
 import com.battleShip.Model.Entities.*;
 import com.battleShip.Repository.*;
+import com.battleShip.domain.ShipNode;
 import com.battleShip.domain.ShipPosition;
 import com.battleShip.domain.ShootShip;
 import com.battleShip.domain.LocationShip;
@@ -10,6 +11,7 @@ import org.springframework.stereotype.Service;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
+import java.util.stream.Collectors;
 
 @Service
 public class BoardService {
@@ -19,6 +21,8 @@ public class BoardService {
     private ShipRepository shipRepository;
     private ShootRepository shootRepository;
     private MapRepository mapRepository;
+
+    private List<ShipNode> shipsInMap;
 
     @Autowired
     public BoardService(BoardRepository boardRepository, GameRepository gameRepository, UserRepository userRepository, ShipRepository shipRepository, ShootRepository shootRepository, MapRepository mapRepository) {
@@ -34,7 +38,13 @@ public class BoardService {
         Game game = gameRepository.getById(locationShip.getIdGame());
         Ship ship = shipRepository.getShipById(locationShip.getIdShip());
         UserLogin player = userRepository.getUserById(locationShip.getIdPlayer());
+        Map map = mapRepository.getById(game.getId_map());
 
+        //Obtener el mapa con las dimensiones.
+        locationShip.getX();
+        locationShip.getY();
+        if (locationShip.getX() > map.getWidth() || locationShip.getY() > map.getHeight())
+            return "The coordinate is out the limits of map ";
 
         if (locationShip.isHorizontal()) {
             for (int i = 0; i < ship.getNumberBox(); i++) {
@@ -139,38 +149,25 @@ public class BoardService {
     }
 
     public String findHeadShip(int idGame, int id_player) {
-        int[][] positions;
+        Integer[][] positions;
         Game game = gameRepository.getById(idGame);
         UserLogin player = userRepository.getUserById(id_player);
-        List<Board> headShip = boardRepository.getHeadShip(player, game);
         Map map = mapRepository.getById(game.getId_map());
-        positions = new int[map.getHeight()][map.getWidth()];
+        positions = new Integer[map.getHeight()][map.getWidth()];
+        List<Board> boards = boardRepository.getAllShips(player, game);
 
         for (int i = 0; i < map.getHeight(); i++) {
             for (int j = 0; j < map.getWidth(); j++) {
                 positions[i][j] = 0;
             }
-
         }
 
+        //Create ListDE
+        listBuildShips(boards);
 
-        for (int i = 0; i < headShip.size(); i++) {
-            Board board = headShip.get(i);
-
-            do {
-                if (board.isDamage() == false) {
-                    positions[board.getX_coordinate()][board.getY_coordinate()] = 1;
-                } else {
-                    positions[board.getX_coordinate()][board.getY_coordinate()] = 2;
-                }
-                board = boardRepository.findById(board.getNextElement()).get();
-            } while (board.getNextElement() != null);
-
-            if (board.isDamage() == false) {
-                positions[board.getX_coordinate()][board.getY_coordinate()] = 1;
-            } else {
-                positions[board.getX_coordinate()][board.getY_coordinate()] = 2;
-            }
+        for(int i = 0; i < shipsInMap.size(); i++) {
+            ShipNode head = shipsInMap.get(i);
+            head.setShipsInBoard(positions, head);
         }
 
         String printMap = "";
@@ -209,7 +206,18 @@ public class BoardService {
         Game game = gameRepository.getById(idGame);
         UserLogin player = userRepository.getUserById(idPlayer);
         List<Board> boards = boardRepository.getAllShips(player, game);
-        List<ShipPosition> shipPositionList = new ArrayList<>();
+        listBuildShips(boards);
+        System.out.println("Total of ships " + shipsInMap.size());
+        String allPositions = "";
+        for(int i = 0; i < shipsInMap.size(); i++) {
+            ShipNode head = shipsInMap.get(i);
+            allPositions = allPositions + head.printPositionOfShip("", head);
+        }
+        return allPositions;
+    }
+
+    private void listBuildShips(List<Board> boards) {
+        shipsInMap = new ArrayList<>();
         System.out.println("Number of ship position " + boards.size());
         for(int i = 0; i < boards.size(); i++) {
             Board board = boards.get(i);
@@ -217,49 +225,35 @@ public class BoardService {
                 ShipPosition shipPositionHead = new ShipPosition();
                 shipPositionHead.setCorX(board.getX_coordinate());
                 shipPositionHead.setCorY(board.getY_coordinate());
-                shipPositionHead.setPreviousElement(null);
-                ShipPosition shipPositionPrevious = shipPositionHead;
+                shipPositionHead.setDamage(board.isDamage());
+                ShipNode shipNode = new ShipNode();
+                shipNode.setShip(shipPositionHead);
+                shipNode.setPrevious(null);
+                ShipNode shipNodePrevious = shipNode;
                 do {
-                    ShipPosition shipPositionNextElement = new ShipPosition();
+                    ShipNode shipNodeNexElement = new ShipNode();
                     for(int j = 0; j < boards.size(); j++) {
                         Board board2 = boards.get(j);
-                        System.out.println("First position  " + boards.get(1).getId() + "ID HEAD " + board.getNextElement().intValue() + " id actual " + board2.getId());
                         if(board2.getId() == board.getNextElement()) {
                             System.out.println("I found the next element");
-                            shipPositionNextElement.setCorY(board2.getY_coordinate());
-                            shipPositionNextElement.setCorX(board2.getX_coordinate());
-                            shipPositionNextElement.setPreviousElement(shipPositionPrevious);
-                            shipPositionNextElement.setNextElement(null);
-                            shipPositionPrevious.setNextElement(shipPositionNextElement);
+                            ShipPosition shipPositionTemp = new ShipPosition();
+                            shipPositionTemp.setCorY(board2.getY_coordinate());
+                            shipPositionTemp.setCorX(board2.getX_coordinate());
+                            shipPositionTemp.setDamage(board2.isDamage());
+                            shipNodeNexElement.setShip(shipPositionTemp);
+                            shipNodeNexElement.setPrevious(shipNodePrevious);
+                            shipNodeNexElement.setNext(null);
+                            shipNodePrevious.setNext(shipNodeNexElement);
                             board = board2;
                             break;
                         }
                     }
-                    shipPositionPrevious = shipPositionNextElement;
+                    shipNodePrevious = shipNodeNexElement;
                 } while(board.getNextElement() != null);
-                shipPositionList.add(shipPositionHead);
+                shipsInMap.add(shipNode);
             }
             System.out.println("i " + i + " size " + boards.size());
         }
-
-        String coordenadas = "";
-        for (int i = 0; i < shipPositionList.size(); i++){
-            ShipPosition shipLocationHead = shipPositionList.get(i);
-            ShipPosition shipPositionNextElement = shipLocationHead;
-            do {
-                if(shipPositionNextElement.isHead()) {
-                    coordenadas = coordenadas + " Its is a head ";
-                    coordenadas =  coordenadas + " X: " + shipPositionNextElement.getCorX() + " Y: " + shipPositionNextElement.getCorY();
-                }
-
-                shipPositionNextElement = shipPositionNextElement.getNextElement();
-                coordenadas =  coordenadas + " X: " + shipPositionNextElement.getCorX() + " Y: " + shipPositionNextElement.getCorY();
-                if(shipPositionNextElement.isTail()) {
-                    coordenadas = coordenadas + " its is a tail ";
-                }
-            } while(!shipPositionNextElement.isTail());
-        }
-        return coordenadas;
     }
 
 
