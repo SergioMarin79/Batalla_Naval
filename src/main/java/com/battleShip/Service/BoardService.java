@@ -1,17 +1,12 @@
 package com.battleShip.Service;
 import com.battleShip.Model.Entities.*;
 import com.battleShip.Repository.*;
-import com.battleShip.domain.ShipNode;
-import com.battleShip.domain.ShipPosition;
-import com.battleShip.domain.ShootShip;
-import com.battleShip.domain.LocationShip;
+import com.battleShip.domain.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
-import java.util.stream.Collectors;
 
 @Service
 public class BoardService {
@@ -22,7 +17,7 @@ public class BoardService {
     private ShootRepository shootRepository;
     private MapRepository mapRepository;
 
-    private List<ShipNode> shipsInMap;
+    private ListDE listDE;
 
     @Autowired
     public BoardService(BoardRepository boardRepository, GameRepository gameRepository, UserRepository userRepository, ShipRepository shipRepository, ShootRepository shootRepository, MapRepository mapRepository) {
@@ -43,8 +38,12 @@ public class BoardService {
         //Obtener el mapa con las dimensiones.
         locationShip.getX();
         locationShip.getY();
-        if (locationShip.getX() > map.getWidth() || locationShip.getY() > map.getHeight())
+        if(locationShip.isHorizontal())
+        if (locationShip.getX() > map.getWidth() - 1 - ship.getNumberBox() || locationShip.getY() > map.getHeight() - 1)
             return "The coordinate is out the limits of map ";
+        if(!locationShip.isHorizontal())
+            if (locationShip.getX() > map.getWidth() - 1 || locationShip.getY() > map.getHeight() - 1 - ship.getNumberBox() )
+                return "The coordinate is out the limits of map ";
 
         if (locationShip.isHorizontal()) {
             for (int i = 0; i < ship.getNumberBox(); i++) {
@@ -165,10 +164,7 @@ public class BoardService {
         //Create ListDE
         listBuildShips(boards);
 
-        for(int i = 0; i < shipsInMap.size(); i++) {
-            ShipNode head = shipsInMap.get(i);
-            head.setShipsInBoard(positions, head);
-        }
+        listDE.setShipsInBoard(positions, listDE.getHead());
 
         String printMap = "";
         for (int i = 0; i < map.getHeight(); i++) {
@@ -207,31 +203,29 @@ public class BoardService {
         UserLogin player = userRepository.getUserById(idPlayer);
         List<Board> boards = boardRepository.getAllShips(player, game);
         listBuildShips(boards);
-        System.out.println("Total of ships " + shipsInMap.size());
-        String allPositions = "";
-        for(int i = 0; i < shipsInMap.size(); i++) {
-            ShipNode head = shipsInMap.get(i);
-            allPositions = allPositions + head.printPositionOfShip("", head);
-        }
-        return allPositions;
+        System.out.println("Total of ships " + listDE.countShipHead(listDE.getHead()));
+        return listDE.printPositionOfShip("", listDE.getHead());
     }
 
     private void listBuildShips(List<Board> boards) {
-        shipsInMap = new ArrayList<>();
+        listDE = new ListDE();
         System.out.println("Number of ship position " + boards.size());
         for(int i = 0; i < boards.size(); i++) {
             Board board = boards.get(i);
             if(board.getPreviousElement() == null) {
+                ShipNode shipNodeHead = new ShipNode();
                 ShipPosition shipPositionHead = new ShipPosition();
                 shipPositionHead.setCorX(board.getX_coordinate());
                 shipPositionHead.setCorY(board.getY_coordinate());
                 shipPositionHead.setDamage(board.isDamage());
-                ShipNode shipNode = new ShipNode();
-                shipNode.setShip(shipPositionHead);
-                shipNode.setPrevious(null);
-                ShipNode shipNodePrevious = shipNode;
+                PositionNode positionNode = new PositionNode();
+                positionNode.setShip(shipPositionHead);
+                positionNode.setPrevious(null);
+
+                shipNodeHead.setPositionNode(positionNode);
+                PositionNode positionNodePrevious = positionNode;
                 do {
-                    ShipNode shipNodeNexElement = new ShipNode();
+                    PositionNode positionNodeNexElement = new PositionNode();
                     for(int j = 0; j < boards.size(); j++) {
                         Board board2 = boards.get(j);
                         if(board2.getId() == board.getNextElement()) {
@@ -240,17 +234,17 @@ public class BoardService {
                             shipPositionTemp.setCorY(board2.getY_coordinate());
                             shipPositionTemp.setCorX(board2.getX_coordinate());
                             shipPositionTemp.setDamage(board2.isDamage());
-                            shipNodeNexElement.setShip(shipPositionTemp);
-                            shipNodeNexElement.setPrevious(shipNodePrevious);
-                            shipNodeNexElement.setNext(null);
-                            shipNodePrevious.setNext(shipNodeNexElement);
+                            positionNodeNexElement.setShip(shipPositionTemp);
+                            positionNodeNexElement.setPrevious(positionNodePrevious);
+                            positionNodeNexElement.setNext(null);
+                            positionNodePrevious.setNext(positionNodeNexElement);
                             board = board2;
                             break;
                         }
                     }
-                    shipNodePrevious = shipNodeNexElement;
+                    positionNodePrevious = positionNodeNexElement;
                 } while(board.getNextElement() != null);
-                shipsInMap.add(shipNode);
+                listDE.addNode(shipNodeHead);
             }
             System.out.println("i " + i + " size " + boards.size());
         }
